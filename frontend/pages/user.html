@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkLink — My Dashboard</title>
+    <meta name="description" content="WorkLink Staff Dashboard — Submit feedback and track your submissions.">
+    <link rel="stylesheet" href="../css/style.css">
+    <script>
+        // IIFE Page Protection Block (Step 8B)
+        (function() {
+            const currentUserStr = localStorage.getItem("currentUser");
+            if (!currentUserStr) {
+                window.location.href = "login.html";
+            }
+        })();
+    </script>
+</head>
+<body>
+<div class="dashboard-container">
+
+    <!-- =====================================================
+         NAVBAR
+         ===================================================== -->
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <div class="brand-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                        stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <span class="brand-name">WorkLink</span>
+        </a>
+
+        <div class="navbar-user-section">
+            <span class="user-badge" id="userEmailBadge">Loading...</span>
+            <button id="logoutBtn" class="btn-logout">Logout</button>
+        </div>
+    </nav>
+
+    <!-- =====================================================
+         MAIN CONTENT
+         ===================================================== -->
+    <main class="dashboard-content">
+
+        <!-- Hero banner -->
+        <div class="welcome-card">
+            <h1>👋 Welcome back!</h1>
+            <p id="userWelcomeEmail">Loading your account...</p>
+        </div>
+
+        <!-- Two-column grid: Submit | History -->
+        <div class="user-dashboard-grid">
+
+            <!-- ─── SUBMIT FEEDBACK CARD ─────────────────── -->
+            <div class="dashboard-card">
+                <h3>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4F46E5"
+                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                    Submit Feedback
+                </h3>
+
+                <!-- Alert box -->
+                <div id="feedbackAlert" class="alert"></div>
+
+                <form id="feedbackForm">
+                    <div class="form-group" style="margin-bottom:4px;">
+                        <label for="feedbackMessage">Your Message</label>
+                        <textarea
+                            id="feedbackMessage"
+                            class="textarea-control"
+                            rows="6"
+                            placeholder="Share your experience, suggestions, or report an issue..."
+                            maxlength="500"
+                            required
+                        ></textarea>
+                    </div>
+
+                    <!-- Character counter -->
+                    <div id="charCounter" class="char-counter">0 / 500</div>
+
+                    <!-- Submit -->
+                    <button type="submit" id="submitFeedbackBtn" class="btn-submit">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                        </svg>
+                        Send Feedback
+                    </button>
+                </form>
+            </div>
+
+            <!-- ─── MY RECENT SUBMISSIONS CARD ───────────── -->
+            <div class="dashboard-card">
+                <h3>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4F46E5"
+                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                    My Recent Submissions
+                    <span class="count-badge" id="myCountBadge">—</span>
+                </h3>
+
+                <div id="personalFeedbacksContainer" class="feedback-grid">
+                    <p class="empty-state">Loading submission history...</p>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+</div>
+
+<script>
+    let loggedInEmail = "";
+
+    // ─── PAGE LOAD ──────────────────────────────────────
+    document.addEventListener("DOMContentLoaded", () => {
+        const email = localStorage.getItem("userEmail");
+        if (!email) { alert("Kripya pehle login karein!"); window.location.href = "login.html"; return; }
+
+        loggedInEmail = email;
+        document.getElementById("userEmailBadge").textContent     = email;
+        document.getElementById("userWelcomeEmail").textContent   = `Logged in as ${email}`;
+
+        // Character counter wiring
+        const ta  = document.getElementById("feedbackMessage");
+        const ctr = document.getElementById("charCounter");
+        ta.addEventListener("input", () => {
+            const n = ta.value.length;
+            ctr.textContent = `${n} / 500`;
+            ctr.className   = "char-counter" + (n > 480 ? " at-limit" : n > 450 ? " near-limit" : "");
+        });
+
+        loadMyFeedbacks();
+    });
+
+    // ─── LOAD MY FEEDBACKS ───────────────────────────────
+    const loadMyFeedbacks = async () => {
+        const container = document.getElementById("personalFeedbacksContainer");
+        const badge     = document.getElementById("myCountBadge");
+
+        try {
+            const res  = await fetch("http://localhost:5000/api/feedback");
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                const mine = data.feedbacks.filter(f => f.userEmail === loggedInEmail);
+                badge.textContent = `${mine.length}`;
+
+                if (mine.length === 0) {
+                    container.innerHTML = `<p class="empty-state">You haven't submitted any feedback yet.</p>`;
+                    return;
+                }
+
+                container.innerHTML = "";
+                mine.slice(0, 6).forEach(item => {
+                    const time = new Date(item.createdAt).toLocaleString("en-IN", {
+                        day: "2-digit", month: "short", year: "numeric",
+                        hour: "2-digit", minute: "2-digit"
+                    });
+                    const card = document.createElement("div");
+                    card.className = "feedback-card-item";
+                    card.innerHTML = `
+                        <div class="feedback-card-header">
+                            <span class="feedback-user">You</span>
+                            <span class="feedback-date">${time}</span>
+                        </div>
+                        <p class="feedback-msg">${safe(item.message)}</p>
+                    `;
+                    container.appendChild(card);
+                });
+            } else {
+                container.innerHTML = `<p class="empty-state" style="color:#EF4444;">Failed to load submissions.</p>`;
+            }
+        } catch (err) {
+            console.error(err);
+            container.innerHTML = `<p class="empty-state" style="color:#EF4444;">Server unreachable.</p>`;
+        }
+    };
+
+    // ─── SUBMIT FEEDBACK ─────────────────────────────────
+    document.getElementById("feedbackForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const message   = document.getElementById("feedbackMessage").value.trim();
+        const alertBox  = document.getElementById("feedbackAlert");
+        const submitBtn = document.getElementById("submitFeedbackBtn");
+        if (!message) return;
+
+        submitBtn.disabled    = true;
+        submitBtn.textContent = "Sending...";
+        alertBox.style.display = "none";
+
+        try {
+            const res  = await fetch("http://localhost:5000/api/feedback", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message, userEmail: loggedInEmail })
+            });
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                alertBox.textContent   = "✓ Feedback submitted successfully!";
+                alertBox.className     = "alert alert-success";
+                alertBox.style.display = "block";
+
+                document.getElementById("feedbackMessage").value = "";
+                const ctr = document.getElementById("charCounter");
+                ctr.textContent = "0 / 500";
+                ctr.className   = "char-counter";
+
+                loadMyFeedbacks();
+            } else {
+                alertBox.textContent   = data.message || "Submission failed. Try again.";
+                alertBox.className     = "alert alert-danger";
+                alertBox.style.display = "block";
+            }
+        } catch (err) {
+            alertBox.textContent   = "Server se connect nahi ho pa raha.";
+            alertBox.className     = "alert alert-danger";
+            alertBox.style.display = "block";
+        } finally {
+            submitBtn.disabled    = false;
+            submitBtn.innerHTML   = `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                </svg>
+                Send Feedback`;
+        }
+    });
+
+    // ─── LOGOUT ─────────────────────────────────────────
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+        localStorage.clear(); // Safe full storage clean (Step 8B)
+        window.location.href = "login.html";
+    });
+
+    // ─── XSS SAFETY ─────────────────────────────────────
+    function safe(str) {
+        const d = document.createElement("div");
+        d.appendChild(document.createTextNode(str || ""));
+        return d.innerHTML;
+    }
+</script>
+</body>
+</html>

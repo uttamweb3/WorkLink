@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkLink — Users Management</title>
+    <meta name="description" content="WorkLink Admin — Manage registered team accounts.">
+    <link rel="stylesheet" href="../css/style.css">
+    <script>
+        // IIFE Page Protection Block (Step 8B)
+        (function() {
+            const currentUserStr = localStorage.getItem("currentUser");
+            if (!currentUserStr) {
+                window.location.href = "login.html";
+                return;
+            }
+            try {
+                const currentUser = JSON.parse(currentUserStr);
+                if (currentUser.role !== "admin") {
+                    window.location.href = "login.html";
+                }
+            } catch (e) {
+                window.location.href = "login.html";
+            }
+        })();
+    </script>
+</head>
+<body>
+<div class="dashboard-container">
+
+    <!-- =====================================================
+         NAVBAR
+         ===================================================== -->
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <div class="brand-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                        stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <span class="brand-name">WorkLink</span>
+        </a>
+
+        <!-- Navigation Tabs (Dashboard & Users) -->
+        <div class="navbar-nav-links">
+            <a href="admin.html" class="nav-link">Dashboard</a>
+            <a href="users.html" class="nav-link active">Users</a>
+        </div>
+
+        <div class="navbar-user-section">
+            <span class="user-badge" id="adminEmailBadge">Loading...</span>
+            <button id="logoutBtn" class="btn-logout">Logout</button>
+        </div>
+    </nav>
+
+    <!-- =====================================================
+         MAIN CONTENT
+         ===================================================== -->
+    <main class="dashboard-content">
+
+        <!-- Compact Page Header -->
+        <div style="margin-bottom: 16px; margin-top: 4px;">
+            <h2 style="font-size: 19px; font-weight: 700; color: var(--text-900); display: flex; align-items: center; gap: 8px;">
+                ⚙️ User Control Panel
+            </h2>
+            <p style="font-size: 12.5px; color: var(--text-500); margin-top: 1px;">Add, view and delete registered staff members.</p>
+        </div>
+
+        <!-- =====================================================
+             USER MANAGEMENT CLEANUP SECTION (Step 8A)
+             ===================================================== -->
+        <div class="dashboard-card">
+            <h3>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4F46E5"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zm8 2a4 4 0 11-8 0"/>
+                </svg>
+                User Administration
+            </h3>
+
+            <!-- Alert Box for success/error popups -->
+            <div id="userAlert" class="alert"></div>
+
+            <div class="user-mgmt-layout">
+                <!-- Left Column: Add User Form -->
+                <div class="user-mgmt-form">
+                    <h4 class="sub-card-title">Add New User</h4>
+                    <form id="addUserForm">
+                        <div class="form-group">
+                            <label for="newUserName">Full Name</label>
+                            <input type="text" id="newUserName" class="form-control" placeholder="Uttam Kumar" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="newUserEmail">Email Address</label>
+                            <input type="email" id="newUserEmail" class="form-control" placeholder="uttam@gmail.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="newUserPassword">Password</label>
+                            <input type="password" id="newUserPassword" class="form-control" placeholder="••••••" required>
+                        </div>
+                        <!-- Note: Role dropdown completely removed as per rule. New users default to role="user". -->
+                        <button type="submit" id="addUserBtn" class="btn-submit" style="margin-top: 8px;">
+                            Add User
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Right Column: Users List Table -->
+                <div class="user-mgmt-table-container">
+                    <h4 class="sub-card-title">All Registered Users</h4>
+                    <div style="overflow-x: auto; max-height: 420px; overflow-y: auto;">
+                        <table class="user-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Created Date</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <tr>
+                                    <td colspan="5" class="empty-state">Loading user records...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<script>
+    // ─── PAGE INITIALIZATION (DOM CONTENT LOADED) ─────────
+    // Kaam: Check karega ki admin logged in hai ya nahi, email badge fill karega aur user list load karega.
+    document.addEventListener("DOMContentLoaded", () => {
+        const email = localStorage.getItem("userEmail");
+        if (!email) { alert("Kripya pehle login karein!"); window.location.href = "login.html"; return; }
+        document.getElementById("adminEmailBadge").textContent = email;
+        loadUsers(); // Pehli baar list load karne ke liye
+    });
+
+    // ─── LOAD USERS FROM FIRESTORE ──────────────────────
+    // Kaam: Server se users load karke table populate karega.
+    // Agar user role 'admin' hai toh Delete button hide rakhega security safety ke liye.
+    const loadUsers = async () => {
+        const tableBody = document.getElementById("usersTableBody");
+        try {
+            const res = await fetch("http://localhost:5000/api/users");
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                const users = data.users;
+                if (users.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="5" class="empty-state">Koi users registered nahi hai.</td></tr>`;
+                    return;
+                }
+
+                tableBody.innerHTML = "";
+                users.forEach(u => {
+                    const dateStr = u.createdAt ? new Date(u.createdAt).toLocaleDateString("en-IN", {
+                        day: "2-digit", month: "short", year: "numeric"
+                    }) : "N/A";
+                    
+                    // Admin Protection: agar role 'admin' hai toh delete button hide rakhenge!
+                    const deleteBtnHtml = u.role === "admin" 
+                        ? `<span style="color:var(--text-400); font-style:italic; font-size:11px;">Protected</span>` 
+                        : `<button class="btn-delete-user" onclick="deleteUser('${u.id}')">Delete</button>`;
+
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td style="font-weight:600; padding:10px 14px;">${safe(u.name)}</td>
+                        <td style="padding:10px 14px;">${safe(u.email)}</td>
+                        <td style="padding:10px 14px;"><span class="role-pill role-${u.role}">${safe(u.role)}</span></td>
+                        <td style="padding:10px 14px;">${dateStr}</td>
+                        <td style="padding:10px 14px;">${deleteBtnHtml}</td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+            } else {
+                tableBody.innerHTML = `<tr><td colspan="5" class="empty-state" style="color:var(--danger);">Error: ${data.message || "Failed to load users."}</td></tr>`;
+            }
+        } catch (err) {
+            console.error(err);
+            tableBody.innerHTML = `<tr><td colspan="5" class="empty-state" style="color:var(--danger);">Server error users load karne me.</td></tr>`;
+        }
+    };
+
+    // ─── ADD NEW USER (FORM SUBMIT) ─────────────────────
+    // Kaam: Naye user ko save karne ke liye backend POST trigger karega. Role field default strictly on backend handles.
+    document.getElementById("addUserForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const name = document.getElementById("newUserName").value.trim();
+        const email = document.getElementById("newUserEmail").value.trim();
+        const password = document.getElementById("newUserPassword").value.trim();
+        const alertBox = document.getElementById("userAlert");
+        const btn = document.getElementById("addUserBtn");
+
+        btn.disabled = true;
+        btn.textContent = "Adding...";
+        alertBox.style.display = "none";
+
+        try {
+            // Note: role parameter is completely omitted from req body as per cleanup rules
+            const res = await fetch("http://localhost:5000/api/users", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, email, password })
+            });
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                alertBox.className = "alert alert-success";
+                alertBox.textContent = `✓ ${data.message}`;
+                alertBox.style.display = "block";
+                
+                // Form reset
+                document.getElementById("addUserForm").reset();
+                // Table lists dynamic updates
+                loadUsers();
+            } else {
+                alertBox.className = "alert alert-danger";
+                alertBox.textContent = data.message || "User add karne me problem aayi.";
+                alertBox.style.display = "block";
+            }
+        } catch (err) {
+            console.error(err);
+            alertBox.className = "alert alert-danger";
+            alertBox.textContent = "Server se connect nahi ho pa raha.";
+            alertBox.style.display = "block";
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Add User";
+        }
+    });
+
+    // ─── DELETE USER FUNCTION ───────────────────────────
+    // Kaam: Pass selected ID to delete endpoint on backend. Refreshes table on success.
+    const deleteUser = async (userId) => {
+        if (!confirm("Kya aap sach me is user account ko delete karna chahte hain?")) return;
+        const alertBox = document.getElementById("userAlert");
+        alertBox.style.display = "none";
+
+        try {
+            const res = await fetch(`http://localhost:5000/api/users/${userId}`, {
+                method: "DELETE"
+            });
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                alertBox.className = "alert alert-success";
+                alertBox.textContent = `✓ ${data.message}`;
+                alertBox.style.display = "block";
+                // Table automatic refresh
+                loadUsers();
+            } else {
+                alertBox.className = "alert alert-danger";
+                alertBox.textContent = data.message || "User delete karne me error aayi.";
+                alertBox.style.display = "block";
+            }
+        } catch (err) {
+            console.error(err);
+            alertBox.className = "alert alert-danger";
+            alertBox.textContent = "Server se connect nahi ho pa raha.";
+            alertBox.style.display = "block";
+        }
+    };
+
+    // Global scope map safe trigger (for dynamic tr click actions)
+    window.deleteUser = deleteUser;
+
+    // ─── LOGOUT ─────────────────────────────────────────
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+        localStorage.clear(); // Safe full storage clean (Step 8B)
+        window.location.href = "login.html";
+    });
+
+    // ─── XSS SAFETY ─────────────────────────────────────
+    function safe(str) {
+        const d = document.createElement("div");
+        d.appendChild(document.createTextNode(str || ""));
+        return d.innerHTML;
+    }
+</script>
+</body>
+</html>

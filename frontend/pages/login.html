@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkLink — Sign In</title>
+    <meta name="description" content="WorkLink — Enterprise feedback and communication platform. Sign in to your account.">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="login-body">
+
+    <!-- Animated background layers -->
+    <div class="login-mesh"></div>
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+
+    <!-- =====================================================
+         SPLIT CONTAINER
+         Left  = Brand panel
+         Right = Login form (max-width 420px)
+         ===================================================== -->
+    <div class="login-split-container">
+
+        <!-- ── LEFT PANEL ── Brand story + feature pills -->
+        <div class="login-left-panel">
+            <div class="left-panel-content">
+
+                <div class="left-brand">
+                    <div class="left-brand-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                                stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <span class="left-brand-name">WorkLink</span>
+                </div>
+
+                <h1 class="left-headline">
+                    The modern platform for <span>team feedback</span> &amp; <span>analytics.</span>
+                </h1>
+
+                <p class="left-subtext">
+                    Streamline communication between admins and staff with real-time feedback dashboards and role-based access control.
+                </p>
+
+                <!-- Dashboard CSS Illustration -->
+                <div class="illustration-wrapper">
+                    <div class="ill-grid"></div>
+                    <!-- Card 1: Feedbacks Count -->
+                    <div class="ill-card ill-card-1">
+                        <span class="ill-label">Feedback Stream</span>
+                        <span class="ill-user">anna@acme.com</span>
+                        <p class="ill-text">"The dashboard speed is incredible now."</p>
+                    </div>
+                    <!-- Card 2: Satisfaction Chart -->
+                    <div class="ill-card ill-card-2">
+                        <span class="ill-label">Satisfaction Rate</span>
+                        <div class="ill-stat">98.2%</div>
+                        <div class="ill-chart">
+                            <div class="ill-bar" style="height: 40%"></div>
+                            <div class="ill-bar" style="height: 60%"></div>
+                            <div class="ill-bar" style="height: 75%"></div>
+                            <div class="ill-bar ill-bar-active" style="height: 95%"></div>
+                        </div>
+                    </div>
+                    <!-- Card 3: Status Badge -->
+                    <div class="ill-card ill-card-3">
+                        <span class="ill-label">Active Users</span>
+                        <div class="ill-stat" style="font-size:18px; color:var(--success);">142 Online</div>
+                    </div>
+                </div>
+
+                <div class="left-features">
+                    <div class="feature-pill">
+                        <div class="fp-dot"></div>
+                        Role-based access — Admin &amp; Staff portals
+                    </div>
+                    <div class="feature-pill">
+                        <div class="fp-dot"></div>
+                        Real-time Firestore feedback system
+                    </div>
+                    <div class="feature-pill">
+                        <div class="fp-dot"></div>
+                        Live metrics dashboard &amp; analytics
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ── RIGHT PANEL ── Glassmorphism login card -->
+        <div class="login-right-panel">
+            <div class="glass-login-card">
+
+                <div class="login-header-section">
+                    <h2>Welcome back</h2>
+                    <p>Sign in to access your dashboard</p>
+                </div>
+
+                <!-- Alert (success / error) -->
+                <div id="alertBox" class="alert"></div>
+
+                <form id="loginForm" autocomplete="on">
+
+                    <div class="glass-form-group">
+                        <label for="email">Email Address</label>
+                        <input
+                            type="email"
+                            id="email"
+                            class="glass-form-control"
+                            placeholder="name@company.com"
+                            autocomplete="email"
+                            required
+                        >
+                    </div>
+
+                    <div class="glass-form-group">
+                        <label for="password">Password</label>
+                        <input
+                            type="password"
+                            id="password"
+                            class="glass-form-control"
+                            placeholder="••••••••"
+                            autocomplete="current-password"
+                            required
+                        >
+                    </div>
+
+                    <div class="glass-checkbox-group">
+                        <input type="checkbox" id="showPassword">
+                        <label for="showPassword">Show password</label>
+                    </div>
+
+                    <button type="submit" id="loginBtn" class="btn-login">
+                        Sign In →
+                    </button>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+
+    <script src="../js/login.js"></script>
+
+</body>
+</html>
